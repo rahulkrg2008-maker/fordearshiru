@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Happy Birthday — Surprise (Enhanced)</title>
+<style>
+  :root{
+    --accent1:#d81b60;
+    --accent2:#ff66cc;
+    --muted:#6d163b;
+    --card-radius:20px;
+    --note-size:320px;
+    --rose-size:70px;
+    --photo-gap:10px;
+    --photo-border:6px;
+    --photo-max-width:400px;
+  }
+  html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+  body{
+    background: linear-gradient(180deg,#fff7fb 0%, #fff0f6 45%, #fff 100%);
+    color:var(--muted);
+    overflow-x:hidden;
+  }
+
+  .bg-curves{
+    position:fixed; left:0; top:0; width:100%; height:40vh; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(800px 220px at 10% 15%, rgba(216,27,96,0.06), transparent 8%),
+      radial-gradient(700px 200px at 90% 8%, rgba(255,102,204,0.04), transparent 8%),
+      linear-gradient(180deg, rgba(255,102,204,0.02), rgba(216,27,96,0.01));
+  }
+  .bg-svg{
+    position:fixed; left:0; top:0; width:100%; height:40vh; z-index:0; pointer-events:none; opacity:0.95;
+  }
+
+  main{ position:relative; z-index:10; max-width:1100px; margin:0 auto; padding:28px 18px 90px; }
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
+  .title{display:flex; gap:12px; align-items:center;}
+  .title h1{margin:0;color:var(--accent1);font-size:1.15rem;}
+  .small{font-size:0.92rem;color:rgba(0,0,0,0.55);}
+  .clock{font-size:0.95rem;color:rgba(0,0,0,0.6);}
+
+  #hearts{ position:fixed; left:0; top:0; width:100%; height:100vh; z-index:3; pointer-events:none; overflow:hidden; }
+  .heart{
+    position:absolute; will-change:transform,opacity; user-select:none; pointer-events:none;
+    transform-origin:center;
+    text-shadow: 0 8px 20px rgba(216,27,96,0.12);
+  }
+
+  .section{ display:none; padding:22px; border-radius:14px; margin-bottom:20px; background: rgba(255,255,255,0.6); box-shadow: 0 12px 36px rgba(216,27,96,0.06); }
+  .active{ display:block; animation:sectionIn 420ms cubic-bezier(.2,.9,.23,1); }
+  @keyframes sectionIn { from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+
+  .center{text-align:center;}
+  .btn{
+    display:inline-block; background: linear-gradient(90deg,var(--accent1),var(--accent2));
+    color:#fff; padding:12px 26px; border-radius:40px; border:none; cursor:pointer; font-weight:800;
+    box-shadow: 0 14px 40px rgba(216,27,96,0.12); transition: transform 140ms ease;
+  }
+  .btn:active{ transform: translateY(2px); }
+  .btn[disabled]{ opacity:0.45; cursor:not-allowed; }
+
+  /* Cake */
+  .cake-area{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .cake-emoji{ font-size:110px; transition: transform 420ms cubic-bezier(.2,.9,.23,1); }
+  .candles{ display:flex; gap:10px; justify-content:center; margin-top:-6px; }
+  .candle{ width:14px; height:36px; border-radius:6px; background:#ffe4b5; position:relative; }
+  .flame{ position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:18px; height:22px; border-radius:50%;
+          background: radial-gradient(circle at 40% 30%, #ffd700 60%, #ff8c00 100%); animation:flicker 1.08s infinite alternate; }
+  @keyframes flicker{ from{transform:translateX(-50%) scaleY(1);} to{transform:translateX(-50%) scaleY(1.12);} }
+
+  /* Photo grid - 2x2, fills phone screen with good visual size */
+  #photoGrid{
+    display:none;
+    width:100vw;
+    max-width:var(--photo-max-width);
+    margin:0 auto;
+    margin-top:10px;
+  }
+  .grid2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:1fr 1fr;
+    gap:var(--photo-gap);
+    width:100%;
+  }
+  .grid2 img{
+    width:100%;
+    aspect-ratio: 1 / 1.25;
+    object-fit:cover;
+    border-radius:12px;
+    border:var(--photo-border) solid rgba(255,240,246,0.9);
+    box-shadow: 0 10px 30px rgba(216,27,96,0.08);
+    background: #fff7fb;
+    height:auto;
+    max-height:175px;
+  }
+  @media (max-width:500px){
+    #photoGrid{max-width:96vw;}
+    .grid2 img{max-height:38vw;}
+  }
+
+  .small-muted{ font-size:0.95rem; color:rgba(0,0,0,0.52); }
+  #readMessagesBtn{ display:none; }
+
+  /* Note card style used inside per-note sections */
+  .note-card{
+    padding:28px; border-radius:var(--card-radius); background:linear-gradient(180deg,#fff,rgba(255,255,255,0.96));
+    box-shadow: 0 26px 60px rgba(216,27,96,0.12); border:2px solid #f8d7e3; display:inline-block; text-align:left;
+  }
+  .note-title{ font-weight:900; color:var(--accent1); font-size:1.14rem; margin-bottom:8px; }
+  .note-body{ font-weight:bold; color:var(--muted); font-size:1.08rem; line-height:1.4; letter-spacing:1.2px; }
+
+  /* quiz stage: one question per square */
+  .quiz-card{
+    width:320px; height:320px; border-radius:18px; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;
+    box-shadow: 0 26px 60px rgba(216,27,96,0.10); border:1px solid rgba(255,255,255,0.6);
+    transition: transform 420ms cubic-bezier(.2,.9,.23,1);
+  }
+  .quiz-q{ font-weight:900; color:#2b2b2b; font-size:1.05rem; margin-bottom:6px; }
+  .quiz-options{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .opt{
+    padding:10px; border-radius:10px; background:#fff; border:1px solid rgba(216,27,96,0.06); font-weight:700; cursor:pointer; text-align:center;
+    box-shadow: 0 10px 30px rgba(216,27,96,0.04);
+  }
+  .opt.selected{ background: linear-gradient(90deg,var(--accent1),var(--accent2)); color:#fff; border-color:transparent; }
+  .quiz-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; width:100%; }
+  .disabled{ opacity:0.5; pointer-events:none; }
+
+  @media (max-width:880px){
+    .grid2 img{ max-height:24vw; }
+    .note-card{ max-width:66vw; width:66vw; min-width:0; min-height:0; height:66vw; }
+  }
+  @media (max-width:520px){
+    .grid2 img{ max-height:22vw; }
+    .note-card{ padding:14px; }
+    .quiz-card{ width:98vw; height:240px; }
+  }
+
+  .confetti{ position:fixed; z-index:120; pointer-events:none; }
+</style>
+</head>
+<body>
+
+  <!-- decorative curves -->
+  <div class="bg-curves"></div>
+  <svg class="bg-svg" viewBox="0 0 1440 320" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,160 C200,60 400,240 640,160 C880,80 1080,240 1440,140 L1440 0 L0 0 Z" fill="#ffd1e6" opacity="0.9"></path>
+    <path d="M0,250 C220,170 380,280 640,230 C900,180 1060,300 1440,220 L1440 0 L0 0 Z" fill="#ffe6f4" opacity="0.7"></path>
+  </svg>
+
+  <!-- hearts -->
+  <div id="hearts" aria-hidden="true"></div>
+
+  <main>
+    <div class="topbar">
+      <div class="title">
+        <h1>🎉 Happy Birthday — Simran (Shiru)</h1>
+        <div class="small">A special surprise page</div>
+      </div>
+      <div class="clock small" id="liveClock">--:--:--</div>
+    </div>
+
+    <!-- 1) Wish -->
+    <section id="wish" class="section center" aria-labelledby="wishTitle">
+      <h2 id="wishTitle" style="margin:6px 0 4px 0; color:var(--accent1);">Happy Birthday Simran! 🎈</h2>
+      <div class="small-muted" style="margin-bottom:12px;">Wishing you smiles, love and wonderful memories today 💖</div>
+      <button id="celebrateBtn" class="btn" aria-label="Celebrate">Celebrate & Play Music</button>
+    </section>
+
+    <!-- 2) Cake -->
+    <section id="cake" class="section center" aria-labelledby="cakeTitle">
+      <h2 id="cakeTitle" style="margin:6px 0 6px 0; color:var(--accent1);">Cake Time</h2>
+      <div class="cake-area">
+        <div id="cakeEmoji" class="cake-emoji" title="Cake">🎂</div>
+        <div class="candles" aria-hidden="true">
+          <div class="candle"><div class="flame"></div></div>
+          <div class="candle"><div class="flame"></div></div>
+          <div class="candle"><div class="flame"></div></div>
+        </div>
+        <div id="cutHint" class="small-muted">Click the button to cut the cake</div>
+        <div style="margin-top:8px;">
+          <button id="cutCakeBtn" class="btn">Cut Cake 🎉</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3) Surprise button (after cake) -->
+    <section id="surprise" class="section center">
+      <div id="surprise-stage">
+        <button id="showSurpriseBtn" class="btn">Show Surprise 🎁</button>
+        <div id="photoGrid">
+          <div class="grid2" id="grid2">
+            <img src="photo.jpg" alt="photo 1">
+            <img src="photo1.jpg" alt="photo 2">
+            <img src="photo2.jpg" alt="photo 3">
+            <img src="photo3.jpg" alt="photo 4">
+          </div>
+          <div style="margin-top:10px; display:flex; gap:12px; justify-content:center; align-items:center;">
+            <div id="photoTimer" class="small-muted">Photos hidden</div>
+            <button id="readMessagesBtn" class="btn" style="display:none;">Read Messages</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4) Notes stage -->
+    <!-- NOTE: per-note sections will be generated dynamically by JS so they are shown one message per stage. -->
+
+    <!-- 5) Quiz stage (stays after notes/final message) -->
+    <section id="quiz" class="section" style="display:none;">
+      <div id="quiz-stage" class="center">
+        <div id="quizCard" class="quiz-card" aria-live="polite">
+          <div>
+            <div class="quiz-q" id="quizQ">Question goes here</div>
+          </div>
+          <div class="quiz-options" id="quizOptions">
+            <!-- option buttons go here -->
+          </div>
+          <div class="quiz-bottom">
+            <div id="quizProgress" class="small-muted">1 / 11</div>
+            <div style="display:flex; gap:10px;">
+              <button id="prevQBtn" class="btn" style="background:#fff;color:var(--accent1);border:1px solid rgba(216,27,96,0.08);">Prev</button>
+              <button id="nextQBtn" class="btn disabled">Next</button>
+            </div>
+          </div>
+        </div>
+        <div id="quizResult" style="margin-top:14px; font-weight:900; color:var(--accent1); display:none;"></div>
+      </div>
+    </section>
+
+  </main>
+  <audio id="bgMusic" src="music.mp3" preload="auto" loop></audio>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  /* ---------- Live clock ---------- */
+  const clockEl = document.getElementById('liveClock');
+  function tick(){ clockEl.innerText = new Date().toLocaleTimeString('en-IN'); }
+  tick(); setInterval(tick, 1000);
+
+  /* ---------- Hearts spawn (controlled) ---------- */
+  (function spawnHearts(){
+    const container = document.getElementById('hearts');
+    const heartPool = ["💗","💖","💝","💞","💓","💕","💘","❣️","💟"];
+    let maxConcurrent = 45;
+    function burst(n=12){
+      if(container.children.length > maxConcurrent) return;
+      for(let i=0;i<n;i++){
+        const el = document.createElement('div');
+        el.className = 'heart';
+        el.innerText = heartPool[Math.floor(Math.random()*heartPool.length)];
+        el.style.left = (Math.random()*92) + 'vw';
+        el.style.top = (60 + Math.random()*30) + 'vh';
+        el.style.fontSize = (14 + Math.random()*34) + 'px';
+        const dur = 6 + Math.random()*7;
+        el.style.transition = `transform ${dur}s linear, opacity ${dur}s linear`;
+        el.style.opacity = 0.95;
+        container.appendChild(el);
+        requestAnimationFrame(()=>{
+          el.style.transform = `translateY(-${100 + Math.random()*120}vh) rotate(${(Math.random()*40)-20}deg) scale(${1 + Math.random()*0.5})`;
+          el.style.opacity = 0.15;
+        });
+        setTimeout(()=> el.remove(), (dur*1000)+300);
+      }
+    }
+    burst(30);
+    setInterval(()=> burst(8), 1600);
+  })();
+
+  /* ---------- Elements & sections ---------- */
+  // keep references to main interactive elements
+  const sectionsAll = () => Array.from(document.querySelectorAll('.section'));
+
+  function showSection(name){
+    // hide all known sections
+    sectionsAll().forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
+    const target = document.getElementById(name);
+    if(!target) return;
+    target.style.display = 'block';
+    requestAnimationFrame(()=> target.classList.add('active'));
+    window.scrollTo({top:0, behavior:'smooth'});
+    if(name === 'quiz') initQuiz();
+  }
+
+  /* ---------- Audio & stage navigation ---------- */
+  const bgMusic = document.getElementById('bgMusic');
+  const celebrateBtn = document.getElementById('celebrateBtn');
+  const cutCakeBtn = document.getElementById('cutCakeBtn');
+  const cakeEmoji = document.getElementById('cakeEmoji');
+  const showSurpriseBtn = document.getElementById('showSurpriseBtn');
+  const photoGrid   = document.getElementById('photoGrid');
+  const photoTimer  = document.getElementById('photoTimer');
+  const readBtn     = document.getElementById('readMessagesBtn');
+  let readTimerRef  = null;
+
+  function handleCelebrate(){
+    try { bgMusic.volume = 0.9; bgMusic.currentTime = 0; bgMusic.play(); } catch(e){ /* autoplay may be blocked until user gesture */ }
+    showSection('cake');
+  }
+  celebrateBtn.addEventListener('click', handleCelebrate);
+
+  function handleCutCake(){
+    cakeEmoji.style.transform = 'scale(0.7) rotate(-6deg)';
+    setTimeout(()=> {
+      cakeEmoji.innerText = '🍰🍰🍰🍰';
+      cakeEmoji.style.transform = 'scale(1.05) rotate(3deg)';
+    }, 420);
+    setTimeout(()=> {
+      showSection('surprise');
+    }, 1100);
+  }
+  cutCakeBtn.addEventListener('click', handleCutCake);
+
+  function handleShowSurprise(){
+    photoGrid.style.display = 'block';
+    showSurpriseBtn.style.display = 'none';
+    photoTimer.innerText = 'Photos shown';
+    if(readTimerRef) clearTimeout(readTimerRef);
+    readBtn.style.display = 'none';
+    readTimerRef = setTimeout(()=> {
+      readBtn.style.display = 'inline-block';
+      photoTimer.innerText = 'Ready to read messages';
+    }, 5000);
+  }
+  showSurpriseBtn.addEventListener('click', handleShowSurprise);
+
+  readBtn.addEventListener('click', function(){
+    if(readTimerRef) { clearTimeout(readTimerRef); readTimerRef = null; }
+    // go to first note stage (dynamically generated)
+    showSection('note1');
+  });
+
+  /* ---------- Notes: create per-note sections (one message per stage) ---------- */
+  const notesData = [
+    "May your birthday be as amazing as you.",
+    "Wishing you best memorable birthday of u.",
+    "जन्मदिन की ढेर सारी शुभकामनाएं! भगवान तुम्हें इतनी लंबी उम्र दे कि तुम गिन भी ना पाव। (0/0 = infinite).",
+    "बागों में फूलों की बहार हो जिंदगी मे खुशिया हजार हो जिंदगी के हर दिन बेमिसाल हो चाहत कि चांदनी हो आपनो का प्यार हो। चाहा हो जिंदगी मे वो सब वे सुमार हो मेहनत हो तारीफ हो आदर ओर सबका प्यार हो दुनिया मे पहचान ओर बड़ा सा नाम हो मेरी ओर से तोफा मे बधाई हजार बार हो !",
+    "आप हमेशा मुस्कुराते रहो, हर ख्वाहिश आपकी पूरी हो। जीवन का हर कदम सफलता से भरा हो, और आपका सफर प्यार और खुशियों से सजता रहे।",
+    "May this birthday be just the beginning of a year filled with happy memories and wonderful moments.🏅🏆<br>Happy birthday 🎂"
+  ];
+
+  // We'll treat the last message separately as the "final message" page
+  const notesOnly = notesData.slice(0, notesData.length - 1); // first N-1 messages
+  const finalNote = notesData[notesData.length - 1];
+
+  // Insert per-note sections before the quiz section
+  const quizSection = document.getElementById('quiz');
+  for(let i=0;i<notesOnly.length;i++){
+    const sec = document.createElement('section');
+    sec.id = `note${i+1}`;
+    sec.className = 'section center';
+    sec.style.display = 'none';
+    sec.innerHTML = `
+      <div style="max-width:900px;margin:0 auto;">
+        <div class="note-card">
+          <div class="note-title">Special Message ${i+1}</div>
+          <div class="note-body">${notesOnly[i].replace(/\n/g,'<br>')}</div>
+          <div style="margin-top:18px; display:flex; justify-content:space-between; gap:12px;">
+            <button class="btn note-prev" data-idx="${i}">${i===0? 'Back' : 'Prev'}</button>
+            <button class="btn note-next" data-idx="${i}">Next</button>
+          </div>
+        </div>
+      </div>
+    `;
+    quizSection.parentNode.insertBefore(sec, quizSection);
+  }
+
+  // Final message section (large bold text + teddy + hearts)
+  const finalSec = document.createElement('section');
+  finalSec.id = 'finalMessage';
+  finalSec.className = 'section center';
+  finalSec.style.display = 'none';
+  finalSec.innerHTML = `
+    <div style="max-width:900px;margin:0 auto; text-align:center;">
+      <div style="font-size:36px; font-weight:900; color:var(--accent1); line-height:1.2;">
+        <strong>${finalNote.replace(/\n/g,'<br>')}</strong>
+      </div>
+      <div style="font-size:110px; margin-top:12px; line-height:0.8;">🧸</div>
+      <div style="font-size:48px;">❤️❤️❤️</div>
+      <div style="margin-top:18px;">
+        <button id="toQuizBtn" class="btn">Continue to Quiz 🎊</button>
+      </div>
+    </div>
+  `;
+  quizSection.parentNode.insertBefore(finalSec, quizSection);
+
+  // Navigation for per-note buttons
+  document.addEventListener('click', function(ev){
+    const t = ev.target;
+    if(t.matches('.note-next')){
+      const idx = parseInt(t.dataset.idx, 10); // 0-based
+      if(idx < notesOnly.length - 1){
+        showSection(`note${idx+2}`); // go to next note
+      } else {
+        showSection('finalMessage');
+      }
+    }
+    if(t.matches('.note-prev')){
+      const idx = parseInt(t.dataset.idx, 10);
+      if(idx > 0){
+        showSection(`note${idx}`); // go to previous note (idx-1 + 1)
+      } else {
+        // if at first note, go back to surprise stage
+        showSection('surprise');
+      }
+    }
+  });
+
+  // Continue from final message to quiz
+  document.addEventListener('click', function(ev){
+    if(ev.target && ev.target.id === 'toQuizBtn'){
+      showSection('quiz');
+    }
+  });
+
+  /* ---------- Quiz logic (unchanged) ---------- */
+  const quizData = [
+    {q:"Now you are…?", options:["16","17","60 😁","1 😆"]},
+    {q:"What do you do today?", options:["Cut cake","Go tour","Watch movie","None"]},
+    {q:"How are you feeling now?", options:["Happy","So happy 😊💓","Surprised 😲💗","Nothing 🤭"]},
+    {q:"Do you like my surprise?", options:["Thoda Thoda 😃","Bahut achha 🥰","Surprised 🙈💗","bilkul bhi nahi"]},
+    {q:"If you could have any animal at your birthday party, which would you choose?", options:["Dragon 🐉","Unicorn 🦄","Elephant 🐘","Penguin 🐧"]},
+    {q:"Agar tumhare birthday par ek superpower milti, to kaunsi chuno?", options:["Flying ✈️","Time travel ⏳","Teleportation 🌍","Unlimited sweets 🍬"]},
+    {q:"Agar magic show ho, to magician kaun hoga?", options:["Tum ✨","Friend 🧑‍🤝‍🧑","Teacher 👩‍🏫","Pet 🐶"]},
+    {q:"Which emoji describes your birthday mood today?", options:["😎","🥳","🤪","😇"]},
+    {q:"Birthday cake or ice cream first?", options:["Cake 🎂","Ice cream 🍦","Both together 🤯","Don’t care 😎"]},
+    {q:"Tumhare birthday ka favorite snack kya hai?", options:["Pizza 🍕","Burger 🍔","Samosa 🥟","French fries 🍟"]},
+    {q:"Which memory of ours do you cherish most?", options:["School days","Trip together","Random late-night talks","All of them ❤️"]}
+  ];
+
+  const quizQ = document.getElementById('quizQ');
+  const quizOptions = document.getElementById('quizOptions');
+  const quizProgress = document.getElementById('quizProgress');
+  const prevQBtn = document.getElementById('prevQBtn');
+  const nextQBtn = document.getElementById('nextQBtn');
+  const quizResult = document.getElementById('quizResult');
+
+  let qIndex = 0;
+  let answers = Array(quizData.length).fill(null);
+
+  function initQuiz(){
+    qIndex = 0; answers = Array(quizData.length).fill(null); quizResult.style.display = 'none';
+    renderQuizQuestion();
+  }
+
+  function renderQuizQuestion(){
+    const qd = quizData[qIndex];
+    quizQ.innerText = qd.q;
+    quizProgress.innerText = `${qIndex+1} / ${quizData.length}`;
+    quizOptions.innerHTML = '';
+    qd.options.forEach((opt, i) => {
+      const b = document.createElement('div');
+      b.className = 'opt';
+      b.innerText = opt;
+      b.addEventListener('click', () => {
+        answers[qIndex] = i;
+        Array.from(quizOptions.children).forEach((c) => c.classList.remove('selected'));
+        b.classList.add('selected');
+        nextQBtn.classList.remove('disabled');
+      });
+      if(answers[qIndex] === i) b.classList.add('selected');
+      quizOptions.appendChild(b);
+    });
+
+    prevQBtn.disabled = (qIndex === 0);
+    if(answers[qIndex] !== null) nextQBtn.classList.remove('disabled'); else nextQBtn.classList.add('disabled');
+    nextQBtn.innerText = (qIndex === quizData.length - 1) ? 'Submit' : 'Next';
+  }
+
+  prevQBtn.addEventListener('click', ()=>{ if(qIndex > 0){ qIndex--; renderQuizQuestion(); } });
+
+  nextQBtn.addEventListener('click', ()=>{
+    if(answers[qIndex] === null) { nextQBtn.classList.add('disabled'); return; }
+    if(qIndex < quizData.length - 1){ qIndex++; renderQuizQuestion(); }
+    else {
+      const answeredCount = answers.filter(x => x !== null).length;
+      quizResult.style.display = 'block';
+      quizResult.innerHTML = `
+        You answered ${answeredCount} of ${quizData.length} questions.<br>
+        <span style="font-size:1.05em; color:var(--accent2);">
+          Hope you like this surprise, share your experience with how u feel
+        </span>
+      `;
+      confettiBurst();
+    }
+  });
+
+  function confettiBurst(){
+    for(let i=0;i<28;i++){
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = (10 + Math.random()*80) + 'vw';
+      c.style.top = (10 + Math.random()*60) + 'vh';
+      const s = 6 + Math.random()*12;
+      c.style.width = c.style.height = s + 'px';
+      c.style.borderRadius = (Math.random()>0.5?'2px':'50%');
+      c.style.zIndex = 120;
+      c.style.background = ['#ff5f7a','#ffd966','#5fff8d','#5fbaff','#ff9fff'][Math.floor(Math.random()*5)];
+      c.style.opacity = 1;
+      c.style.transition = `transform ${900 + Math.random()*900}ms cubic-bezier(.2,.9,.23,1), opacity 900ms linear`;
+      document.body.appendChild(c);
+      requestAnimationFrame(()=> {
+        c.style.transform = `translateY(${120 + Math.random()*160}vh) rotate(${360*Math.random()}deg)`;
+        c.style.opacity = 0;
+      });
+      setTimeout(()=> c.remove(), 1800 + Math.random()*600);
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    // quiz keyboard navigation
+    if(document.getElementById('quiz').style.display !== 'none'){
+      if(e.key === 'ArrowRight' || e.key === 'Enter'){ nextQBtn.click(); }
+      if(e.key === 'ArrowLeft'){ prevQBtn.click(); }
+      return;
+    }
+
+    // notes / final message keyboard navigation (left/right)
+    const visibleNote = Array.from(document.querySelectorAll('section[id^="note"], #finalMessage')).find(s => s.style.display !== 'none');
+    if(visibleNote){
+      const notesCount = notesOnly.length;
+      if(e.key === 'ArrowRight' || e.key === 'Enter'){
+        if(visibleNote.id === 'finalMessage'){
+          const btn = document.getElementById('toQuizBtn'); if(btn) btn.click();
+        } else {
+          const idx = parseInt(visibleNote.id.replace('note',''), 10);
+          if(idx < notesCount) showSection(`note${idx+1}`); else showSection('finalMessage');
+        }
+      }
+      if(e.key === 'ArrowLeft'){
+        if(visibleNote.id === 'finalMessage'){
+          showSection(`note${notesCount}`);
+        } else {
+          const idx = parseInt(visibleNote.id.replace('note',''), 10);
+          if(idx > 1) showSection(`note${idx-1}`); else showSection('surprise');
+        }
+      }
+    }
+  });
+
+  // start at the wish section
+  showSection('wish');
+});
+</script>
+</body>
+</html>
